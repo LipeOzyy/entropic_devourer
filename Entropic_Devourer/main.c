@@ -10,15 +10,21 @@
 #define IPV4_FUSCATION 1000
 #define MAC_FUSCATION  2000
 #define IPV6_FUSCATION 3000
+#define OUTPUT_EXEC    1
+#define OUTPUT_TEXT    2
 
 void print_usage(const char* program_name) {
-    printf("Usage: %s <payload file> <option>\n", program_name);
+    printf("Usage: %s <payload file> <option> [format]\n", program_name);
     printf("\nOptions:\n");
     printf("  mac, macfuscation \n");
     printf("  ipv4, ipv4fuscation \n");
     printf("  ipv6, ipv6fuscation \n");
+    printf("\nFormats (optional):\n");
+    printf("  exec (default) -> generates runnable C source\n");
+    printf("  text           -> generates only const char* array block\n");
     printf("\nExample:\n");
     printf("  %s shellcode.bin ipv4\n", program_name);
+    printf("  %s shellcode.bin ipv4 text\n", program_name);
 }
 
 void print_logo() {
@@ -40,10 +46,11 @@ void print_logo() {
 
 int main(int argc, char* argv[]) {
     int type = 0;
+    int output_mode = OUTPUT_EXEC;
     
     print_logo();
     
-    if (argc != 3) {
+    if (argc != 3 && argc != 4) {
         print_usage(argv[0]);
         return -1;
     }
@@ -58,6 +65,24 @@ int main(int argc, char* argv[]) {
     
     for (int i = 0; option[i]; i++) {
         option[i] = tolower(option[i]);
+    }
+
+    if (argc == 4) {
+        char* format = argv[3];
+        for (int i = 0; format[i]; i++) {
+            format[i] = tolower(format[i]);
+        }
+
+        if (strcmp(format, "text") == 0 || strcmp(format, "txt") == 0) {
+            output_mode = OUTPUT_TEXT;
+        } else if (strcmp(format, "exec") == 0 || strcmp(format, "c") == 0) {
+            output_mode = OUTPUT_EXEC;
+        } else {
+            printf("[!] Unknown format: %s\n", argv[3]);
+            print_usage(argv[0]);
+            free(g_payload.p_shell);
+            return -1;
+        }
     }
     
     if (strcmp(option, "mac") == 0 || strcmp(option, "macfuscation") == 0) {
@@ -110,23 +135,40 @@ int main(int argc, char* argv[]) {
     
     switch (type) {
         case IPV4_FUSCATION:
-            output_filename = "ipv4_shellcode.c";
-            success = generate_ipv4_output(output_filename);
+            if (output_mode == OUTPUT_TEXT) {
+                output_filename = "ipv4_shellcode.txt";
+                success = generate_ipv4_text_output(output_filename);
+            } else {
+                output_filename = "ipv4_shellcode.c";
+                success = generate_ipv4_output(output_filename);
+            }
             break;
         case MAC_FUSCATION:
-            output_filename = "mac_shellcode.c";
-            success = generate_mac_output(output_filename);
+            if (output_mode == OUTPUT_TEXT) {
+                output_filename = "mac_shellcode.txt";
+                success = generate_mac_text_output(output_filename);
+            } else {
+                output_filename = "mac_shellcode.c";
+                success = generate_mac_output(output_filename);
+            }
             break;
         case IPV6_FUSCATION:
-            output_filename = "ipv6_shellcode.c";
-            success = generate_ipv6_output(output_filename);
+            if (output_mode == OUTPUT_TEXT) {
+                output_filename = "ipv6_shellcode.txt";
+                success = generate_ipv6_text_output(output_filename);
+            } else {
+                output_filename = "ipv6_shellcode.c";
+                success = generate_ipv6_output(output_filename);
+            }
             break;
     }
     
     if (success) {
         printf("[✓] Successfully generated %s\n", output_filename);
-        printf("[i] To compile: gcc -o shellcode %s -pthread\n", output_filename);
-        printf("[i] To run: ./shellcode\n");
+        if (output_mode == OUTPUT_EXEC) {
+            printf("[i] To compile: gcc -o shellcode %s -pthread\n", output_filename);
+            printf("[i] To run: ./shellcode\n");
+        }
     } else {
         printf("[✗] Failed to generate output\n");
     }

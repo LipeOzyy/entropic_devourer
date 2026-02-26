@@ -5,5 +5,6 @@
 #include <stdint.h>
 
 bool generate_mac_output(const char* output_file);
+bool generate_mac_text_output(const char* output_file);
 
 #endif 

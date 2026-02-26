@@ -25,3 +25,4 @@ run: $(TARGET)
 clean:
 	rm -f $(TARGET)
 	rm -f ipv4_shellcode.c ipv6_shellcode.c mac_shellcode.c shellcode
+	rm -f ipv4_shellcode.txt ipv6_shellcode.txt mac_shellcode.txt
