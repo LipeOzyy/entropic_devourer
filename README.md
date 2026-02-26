@@ -61,10 +61,7 @@ make clean
 
 ## Recording
 
-<video controls width="960">
-  <source src="image/gravacao.webm" type="video/webm" />
-  Your browser does not support the video tag.
-</video>
+[Watch final video](./image/gravacao.webm)
 
 
 
