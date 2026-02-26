@@ -41,8 +41,8 @@ Available options:
 
 Available formats:
 
-- `exec` (default): generate C source with decoder + execution flow
-- `text`: generate only the obfuscated block (`const char* ...[] = { ... };`)
+- `exec` or `c` (default): generate C source with decoder + execution flow
+- `text` or `txt`: generate only the obfuscated block (`const char* ...[] = { ... };`)
 
 Examples:
 
@@ -51,6 +51,7 @@ Examples:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
+./Entropic_Devourer/entropic_devourer shellcode.bin ipv6 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac text
 ```
 
