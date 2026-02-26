@@ -12,9 +12,14 @@
 #define IPV6_FUSCATION 3000
 #define OUTPUT_EXEC    1
 #define OUTPUT_TEXT    2
+#define OUTPUT_JSON    3
+#define TOOL_VERSION   "V 1.1 beta"
 
 void print_usage(const char* program_name) {
+    printf("Entropic Devourer %s\n", TOOL_VERSION);
     printf("Usage: %s <payload file> <option> [format]\n", program_name);
+    printf("       %s --help\n", program_name);
+    printf("       %s --version\n", program_name);
     printf("\nOptions:\n");
     printf("  mac, macfuscation \n");
     printf("  ipv4, ipv4fuscation \n");
@@ -22,9 +27,15 @@ void print_usage(const char* program_name) {
     printf("\nFormats (optional):\n");
     printf("  exec (default) -> generates runnable C source\n");
     printf("  text           -> generates only const char* array block\n");
+    printf("  json, jason    -> generates obfuscated data as JSON\n");
     printf("\nExample:\n");
     printf("  %s shellcode.bin ipv4\n", program_name);
     printf("  %s shellcode.bin ipv4 text\n", program_name);
+    printf("  %s shellcode.bin ipv4 json\n", program_name);
+}
+
+void print_version() {
+    printf("Entropic Devourer %s\n", TOOL_VERSION);
 }
 
 void print_logo() {
@@ -48,6 +59,16 @@ int main(int argc, char* argv[]) {
     int type = 0;
     int output_mode = OUTPUT_EXEC;
     
+    if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        print_usage(argv[0]);
+        return 0;
+    }
+
+    if (argc == 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)) {
+        print_version();
+        return 0;
+    }
+
     print_logo();
     
     if (argc != 3 && argc != 4) {
@@ -75,6 +96,8 @@ int main(int argc, char* argv[]) {
 
         if (strcmp(format, "text") == 0 || strcmp(format, "txt") == 0) {
             output_mode = OUTPUT_TEXT;
+        } else if (strcmp(format, "json") == 0 || strcmp(format, "jason") == 0) {
+            output_mode = OUTPUT_JSON;
         } else if (strcmp(format, "exec") == 0 || strcmp(format, "c") == 0) {
             output_mode = OUTPUT_EXEC;
         } else {
@@ -138,6 +161,9 @@ int main(int argc, char* argv[]) {
             if (output_mode == OUTPUT_TEXT) {
                 output_filename = "ipv4_shellcode.txt";
                 success = generate_ipv4_text_output(output_filename);
+            } else if (output_mode == OUTPUT_JSON) {
+                output_filename = "ipv4_shellcode.json";
+                success = generate_ipv4_json_output(output_filename);
             } else {
                 output_filename = "ipv4_shellcode.c";
                 success = generate_ipv4_output(output_filename);
@@ -147,6 +173,9 @@ int main(int argc, char* argv[]) {
             if (output_mode == OUTPUT_TEXT) {
                 output_filename = "mac_shellcode.txt";
                 success = generate_mac_text_output(output_filename);
+            } else if (output_mode == OUTPUT_JSON) {
+                output_filename = "mac_shellcode.json";
+                success = generate_mac_json_output(output_filename);
             } else {
                 output_filename = "mac_shellcode.c";
                 success = generate_mac_output(output_filename);
@@ -156,6 +185,9 @@ int main(int argc, char* argv[]) {
             if (output_mode == OUTPUT_TEXT) {
                 output_filename = "ipv6_shellcode.txt";
                 success = generate_ipv6_text_output(output_filename);
+            } else if (output_mode == OUTPUT_JSON) {
+                output_filename = "ipv6_shellcode.json";
+                success = generate_ipv6_json_output(output_filename);
             } else {
                 output_filename = "ipv6_shellcode.c";
                 success = generate_ipv6_output(output_filename);

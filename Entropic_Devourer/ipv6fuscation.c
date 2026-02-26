@@ -198,3 +198,70 @@ bool generate_ipv6_text_output(const char* output_file) {
     printf("[+] IPv6 text output written to %s\n", output_file);
     return true;
 }
+
+bool generate_ipv6_json_output(const char* output_file) {
+    if (!write_shellcode_file(output_file)) {
+        return false;
+    }
+
+    FILE* f = g_payload.output_file;
+    fprintf(f, "{\n");
+    fprintf(f, "  \"type\": \"ipv6\",\n");
+    fprintf(f, "  \"shellcode_size\": %zu,\n", g_payload.final_size);
+    fprintf(f, "  \"obfuscated\": [\n    ");
+
+    int count = 0;
+    char ipv6_str[64];
+
+    for (size_t i = 0; i < g_payload.final_size; i += 16) {
+        if (i + 15 < g_payload.final_size) {
+            uint32_t ip1 = generate_ipv6_hex(
+                g_payload.p_new_shell[i],
+                g_payload.p_new_shell[i + 1],
+                g_payload.p_new_shell[i + 2],
+                g_payload.p_new_shell[i + 3]
+            );
+
+            uint32_t ip2 = generate_ipv6_hex(
+                g_payload.p_new_shell[i + 4],
+                g_payload.p_new_shell[i + 5],
+                g_payload.p_new_shell[i + 6],
+                g_payload.p_new_shell[i + 7]
+            );
+
+            uint32_t ip3 = generate_ipv6_hex(
+                g_payload.p_new_shell[i + 8],
+                g_payload.p_new_shell[i + 9],
+                g_payload.p_new_shell[i + 10],
+                g_payload.p_new_shell[i + 11]
+            );
+
+            uint32_t ip4 = generate_ipv6_hex(
+                g_payload.p_new_shell[i + 12],
+                g_payload.p_new_shell[i + 13],
+                g_payload.p_new_shell[i + 14],
+                g_payload.p_new_shell[i + 15]
+            );
+
+            format_ipv6_address(ip1, ip2, ip3, ip4, ipv6_str, sizeof(ipv6_str));
+
+            if (i + 16 >= g_payload.final_size) {
+                fprintf(f, "\"%s\"", ipv6_str);
+            } else {
+                fprintf(f, "\"%s\", ", ipv6_str);
+            }
+
+            count++;
+            if (count % 4 == 0) {
+                fprintf(f, "\n    ");
+            }
+        }
+    }
+
+    fprintf(f, "\n  ],\n");
+    fprintf(f, "  \"elements_count\": %d\n", count);
+    fprintf(f, "}\n");
+    fclose(f);
+    printf("[+] IPv6 JSON output written to %s\n", output_file);
+    return true;
+}

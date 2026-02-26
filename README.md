@@ -29,6 +29,8 @@ Generated binary:
 
 ```bash
 ./Entropic_Devourer/entropic_devourer <payload_file> <option> [format]
+./Entropic_Devourer/entropic_devourer --help
+./Entropic_Devourer/entropic_devourer --version
 ```
 
 Available options:
@@ -43,6 +45,7 @@ Available formats:
 
 - `exec` or `c` (default): generate C source with decoder + execution flow
 - `text` or `txt`: generate only the obfuscated block (`const char* ...[] = { ... };`)
+- `json` or `jason`: generate obfuscated data as JSON
 
 Examples:
 
@@ -53,6 +56,9 @@ Examples:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac text
+./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 json
+./Entropic_Devourer/entropic_devourer --help
+./Entropic_Devourer/entropic_devourer --version
 ```
 
 Generated output files (depending on the selected option):
@@ -63,6 +69,9 @@ Generated output files (depending on the selected option):
 - `ipv4_shellcode.txt`
 - `ipv6_shellcode.txt`
 - `mac_shellcode.txt`
+- `ipv4_shellcode.json`
+- `ipv6_shellcode.json`
+- `mac_shellcode.json`
 
 To clean build and generated artifacts:
 

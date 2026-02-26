@@ -150,3 +150,49 @@ bool generate_ipv4_text_output(const char* output_file) {
     printf("[+] IPv4 text output written to %s\n", output_file);
     return true;
 }
+
+bool generate_ipv4_json_output(const char* output_file) {
+    if (!write_shellcode_file(output_file)) {
+        return false;
+    }
+
+    FILE* f = g_payload.output_file;
+    fprintf(f, "{\n");
+    fprintf(f, "  \"type\": \"ipv4\",\n");
+    fprintf(f, "  \"shellcode_size\": %zu,\n", g_payload.final_size);
+    fprintf(f, "  \"obfuscated\": [\n    ");
+
+    int count = 0;
+    char ip_str[32];
+
+    for (size_t i = 0; i < g_payload.final_size; i += 4) {
+        if (i + 3 < g_payload.final_size) {
+            uint32_t hex = generate_ipv4_hex(
+                g_payload.p_new_shell[i],
+                g_payload.p_new_shell[i + 1],
+                g_payload.p_new_shell[i + 2],
+                g_payload.p_new_shell[i + 3]
+            );
+
+            format_ipv4_address(hex, ip_str, sizeof(ip_str));
+
+            if (i + 4 >= g_payload.final_size) {
+                fprintf(f, "\"%s\"", ip_str);
+            } else {
+                fprintf(f, "\"%s\", ", ip_str);
+            }
+
+            count++;
+            if (count % 8 == 0) {
+                fprintf(f, "\n    ");
+            }
+        }
+    }
+
+    fprintf(f, "\n  ],\n");
+    fprintf(f, "  \"elements_count\": %d\n", count);
+    fprintf(f, "}\n");
+    fclose(f);
+    printf("[+] IPv4 JSON output written to %s\n", output_file);
+    return true;
+}
