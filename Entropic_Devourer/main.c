@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "Common.h"
+#include "code_to_bytes.h"
 #include "ipv4fuscation.h"
 #include "ipv6fuscation.h"
 #include "MacFuscation.h"
@@ -24,6 +25,7 @@ void print_usage(const char* program_name) {
     printf("  mac, macfuscation \n");
     printf("  ipv4, ipv4fuscation \n");
     printf("  ipv6, ipv6fuscation \n");
+    printf("  bytes, byte, array \n");
     printf("\nFormats (optional):\n");
     printf("  exec (default) -> generates runnable C source\n");
     printf("  text           -> generates only const char* array block\n");
@@ -32,6 +34,7 @@ void print_usage(const char* program_name) {
     printf("  %s shellcode.bin ipv4\n", program_name);
     printf("  %s shellcode.bin ipv4 text\n", program_name);
     printf("  %s shellcode.bin ipv4 json\n", program_name);
+    printf("  %s script.py bytes\n", program_name);
 }
 
 void print_version() {
@@ -76,18 +79,40 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     
-    if (!read_bin_file(argv[1]) || g_payload.p_shell == NULL || g_payload.bytes_number == 0) {
-        return -1;
-    }
-    
-    printf("[i] Original shellcode size: %zu bytes\n", g_payload.bytes_number);
-    
     char* option = argv[2];
     
     for (int i = 0; option[i]; i++) {
         option[i] = tolower(option[i]);
     }
 
+    if (strcmp(option, "bytes") == 0 || strcmp(option, "byte") == 0 || strcmp(option, "array") == 0) {
+        const char* suffix = "_bytes.txt";
+        size_t out_len = strlen(argv[1]) + strlen(suffix) + 1;
+        char* output_filename = (char*)malloc(out_len);
+        if (!output_filename) {
+            perror("[!] malloc failed");
+            return -1;
+        }
+
+        snprintf(output_filename, out_len, "%s%s", argv[1], suffix);
+
+        if (convert_code_to_bytes(argv[1], output_filename)) {
+            printf("[✓] Successfully generated %s\n", output_filename);
+            free(output_filename);
+            return 0;
+        }
+
+        printf("[✗] Failed to generate byte array\n");
+        free(output_filename);
+        return -1;
+    }
+
+    if (!read_bin_file(argv[1]) || g_payload.p_shell == NULL || g_payload.bytes_number == 0) {
+        return -1;
+    }
+    
+    printf("[i] Original shellcode size: %zu bytes\n", g_payload.bytes_number);
+    
     if (argc == 4) {
         char* format = argv[3];
         for (int i = 0; format[i]; i++) {

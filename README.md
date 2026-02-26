@@ -40,6 +40,7 @@ Available options:
 - `mac` or `macfuscation`
 - `ipv4` or `ipv4fuscation`
 - `ipv6` or `ipv6fuscation`
+- `bytes` or `byte` or `array`
 
 Available formats:
 
@@ -47,9 +48,13 @@ Available formats:
 - `text` or `txt`: generate only the obfuscated block (`const char* ...[] = { ... };`)
 - `json` or `jason`: generate obfuscated data as JSON
 
+For `bytes|byte|array`, the tool generates a C byte array file named `<input_file>_bytes.txt`.
+
 Examples:
 
 ```bash
+./Entropic_Devourer/entropic_devourer --help
+./Entropic_Devourer/entropic_devourer --version
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac
@@ -57,8 +62,7 @@ Examples:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac text
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 json
-./Entropic_Devourer/entropic_devourer --help
-./Entropic_Devourer/entropic_devourer --version
+./Entropic_Devourer/entropic_devourer script.py bytes
 ```
 
 Generated output files (depending on the selected option):
@@ -72,6 +76,7 @@ Generated output files (depending on the selected option):
 - `ipv4_shellcode.json`
 - `ipv6_shellcode.json`
 - `mac_shellcode.json`
+- `<input_file>_bytes.txt`
 
 To clean build and generated artifacts:
 
