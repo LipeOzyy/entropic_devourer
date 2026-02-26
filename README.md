@@ -59,12 +59,6 @@ To clean build and generated artifacts:
 make clean
 ```
 
-## Recording
-
-[Watch final video](./image/gravacao.webm)
-
-
-
 ## References
 
 - https://github.com/NUL0x4C/HellShell/tree/main
