@@ -1,8 +1,0 @@
-{
-  "type": "ipv6",
-  "shellcode_size": 32,
-  "obfuscated": [
-    "0102:0304:0506:0708:090A:0B0C:0D0E:0F10", "1112:1314:1516:1718:191A:1B1C:1D1E:1F20"
-  ],
-  "elements_count": 2
-}
