@@ -79,6 +79,16 @@ To clean build and generated artifacts:
 make clean
 ```
 
+---
+
+## Found an issue?
+
+If you found any error, unexpected behavior, or identified something that could be improved, please get in touch.
+
+Feedback is extremely important to keep the project consistent and continuously evolving.
+
+---
+
 ## References
 
 - https://github.com/NUL0x4C/HellShell/tree/main
