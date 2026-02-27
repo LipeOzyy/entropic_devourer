@@ -26,6 +26,8 @@ Generated binary:
 
 `Entropic_Devourer/entropic_devourer`
 
+![alt text](/image/ex1.png)
+
 ### Run
 
 The command‑line interface has been upgraded with long options, coloured
