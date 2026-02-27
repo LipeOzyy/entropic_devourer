@@ -97,9 +97,12 @@ void apply_xor(const unsigned char* key, size_t key_len) {
 }
 
 bool write_shellcode_file(const char* file_name) {
+    /* debug: report filename being opened */
+    //printf("[debug] write_shellcode_file opening '%s'\n", file_name);
     FILE* file = fopen(file_name, "w");
     if (!file) {
-        perror("[!] fopen failed for output file");
+        fprintf(stderr, "[!] fopen failed for output file '%s': ", file_name);
+        perror(NULL);
         return false;
     }
     

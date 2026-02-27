@@ -276,12 +276,21 @@ int main(int argc, char* argv[]) {
         }
         if (option && (strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0)) {
             if (optind < argc) {
-                xor_key = argv[optind++];
+                /* if the next positional argument looks like a format keyword,
+                   don't treat it as the XOR key here; leave it for later parsing */
+                const char *next = argv[optind];
+                if (strcasecmp(next, "text") != 0 && strcasecmp(next, "txt") != 0 &&
+                    strcasecmp(next, "json") != 0 && strcasecmp(next, "jason") != 0 &&
+                    strcasecmp(next, "exec") != 0 && strcasecmp(next, "c") != 0) {
+                    xor_key = argv[optind++];
+                }
             }
         }
         if (optind < argc) {
             format = argv[optind++];
         }
+
+        /* debug: print parsed positional args */
 
         if (!payload_file || !option) {
             print_usage(argv[0]);
@@ -417,6 +426,19 @@ int main(int argc, char* argv[]) {
             append_shellcode(16);
         }
         type = IPV6_FUSCATION;
+    }
+    else if (strcmp(option, "xor") == 0 || strcmp(option, "xorfuscation") == 0) {
+        /* XOR handling doesn't need padding; just copy original payload for later processing */
+        if (!quiet) printf(COLOR_BLUE "[i] XOR obfuscation selected" COLOR_RESET "\n");
+        g_payload.p_new_shell = malloc(g_payload.bytes_number);
+        if (!g_payload.p_new_shell) {
+            perror(COLOR_RED "[!] malloc failed" COLOR_RESET);
+            free(g_payload.p_shell);
+            return -1;
+        }
+        memcpy(g_payload.p_new_shell, g_payload.p_shell, g_payload.bytes_number);
+        g_payload.final_size = g_payload.bytes_number;
+        type = XOR_FUSCATION;
     }
     else {
         if (!quiet) printf(COLOR_RED "[!] Unknown option: %s" COLOR_RESET "\n", option);
