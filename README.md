@@ -1,8 +1,9 @@
 ![EDR is listening](/image/edr%20is%20listening.jpg)
 
 # Entropic Devourer
+Tool designed for research and experimentation in artifact obfuscation, capable of generating fuscation routines using formats such as IPv4, IPv6, MAC addresses, and XOR with a variable key, as well as automatically producing the corresponding decoders in C. The goal is to practically explore how sensitive data, such as C2 strings or payloads, can be transformed to reduce readability and hinder static analysis, making code comprehension significantly more complex for analysts and automated tools.
 
-Repository dedicated to the research and hands-on practice of advanced obfuscation techniques, with a focus on Linux environments. The goal is to explore effective methods for reducing detectability and hindering static analysis of artifacts, including the encoding of payloads and sensitive indicators (such as C2 server addresses). This project draws inspiration from modern obfuscation approaches and is intended for educational purposes, helping researchers and enthusiasts understand the mechanisms sophisticated malware uses to evade detection and analysis.
+Designed as a technical laboratory for studying offensive and evasion techniques, the tool enables hands-on understanding of how small structural transformations impact detection mechanisms and reverse engineering processes. Its purpose is to enhance offensive security knowledge and strengthen the understanding of how artifacts can be protected or analyzed in real-world scenarios, always with an educational focus and responsible use.
 
 ## Usage
 
@@ -50,6 +51,7 @@ If `--config` is not supplied the program will look for
 # use ipv4 fuscation and output text by default
 option = ipv4
 format = text
+xor_key = 0x5A   # only relevant when option is "xor"
 ```
 
 #### Obfuscation options
@@ -57,7 +59,20 @@ format = text
 - `mac`, `macfuscation`
 - `ipv4`, `ipv4fuscation`
 - `ipv6`, `ipv6fuscation`
+- `xor`, `xorfuscation` <key>    (hex 0xNN or literal string)
 - `bytes`, `byte`, `array`
+
+#### Deobfuscation helpers
+
+You can ask the tool to emit a decoder function in C instead of processing
+payloads. The `-d` / `--desobfuscate` option accepts the same types
+(`ipv4`, `ipv6`, `mac`, `xor`). For XOR you must also pass a key with
+`-k`.
+
+```bash
+./Entropic_Devourer/entropic_devourer -d ipv4
+./Entropic_Devourer/entropic_devourer -d xor -k 0x5A
+```
 
 #### Formats
 
@@ -71,6 +86,10 @@ Example invocations:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 json
+./Entropic_Devourer/entropic_devourer shellcode.bin xor 0x5A
+./Entropic_Devourer/entropic_devourer shellcode.bin xor secret
+./Entropic_Devourer/entropic_devourer -d ipv4
+./Entropic_Devourer/entropic_devourer -d xor -k 0x5A
 ./Entropic_Devourer/entropic_devourer -c mycfg.cfg mypayload.bin
 ```
 
@@ -84,6 +103,7 @@ Examples:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac
+./Entropic_Devourer/entropic_devourer shellcode.bin xor 0x5A
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac text
@@ -96,12 +116,15 @@ Generated output files (depending on the selected option):
 - `ipv4_shellcode.c`
 - `ipv6_shellcode.c`
 - `mac_shellcode.c`
+- `xor_shellcode.c`
 - `ipv4_shellcode.txt`
 - `ipv6_shellcode.txt`
 - `mac_shellcode.txt`
+- `xor_shellcode.txt`
 - `ipv4_shellcode.json`
 - `ipv6_shellcode.json`
 - `mac_shellcode.json`
+- `xor_shellcode.json`
 - `<input_file>_bytes.txt`
 
 To clean build and generated artifacts:

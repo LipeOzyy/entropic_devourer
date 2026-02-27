@@ -11,6 +11,7 @@ SOURCES := \
 	$(SRC_DIR)/ipv4fuscation.c \
 	$(SRC_DIR)/ipv6fuscation.c \
 	$(SRC_DIR)/MacFuscation.c \
+	$(SRC_DIR)/xorfuscation.c \
 	$(SRC_DIR)/code_to_bytes.c
 
 .PHONY: all clean run test-bytes

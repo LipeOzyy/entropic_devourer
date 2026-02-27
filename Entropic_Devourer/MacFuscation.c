@@ -37,7 +37,7 @@ bool generate_mac_output(const char* output_file) {
     fprintf(f, "#include <unistd.h>\n");
     fprintf(f, "#include <pthread.h>\n\n");
     
-    fprintf(f, "// MAC address to binary decoder for Linux\n");
+    fprintf(f, "\n");
     fprintf(f, "int parse_mac_string(const char* mac_str, unsigned char* output) {\n");
     fprintf(f, "    unsigned int bytes[6];\n");
     fprintf(f, "    if (sscanf(mac_str, \"%%2x-%%2x-%%2x-%%2x-%%2x-%%2x\",\n");

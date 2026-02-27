@@ -78,6 +78,24 @@ void append_shellcode(int n) {
     g_payload.p_new_shell = new_padded;
 }
 
+void apply_xor(const unsigned char* key, size_t key_len) {
+    if (key == NULL || key_len == 0) {
+        fprintf(stderr, "[!] apply_xor called with empty key\n");
+        return;
+    }
+    g_payload.final_size = g_payload.bytes_number;
+    unsigned char *out = malloc(g_payload.final_size);
+    if (!out) {
+        perror("[!] malloc failed in apply_xor");
+        return;
+    }
+    for (size_t i = 0; i < g_payload.final_size; i++) {
+        out[i] = g_payload.p_shell[i] ^ key[i % key_len];
+    }
+    g_payload.p_new_shell = out;
+    printf("[+] Applied XOR with key length %zu\n", key_len);
+}
+
 bool write_shellcode_file(const char* file_name) {
     FILE* file = fopen(file_name, "w");
     if (!file) {

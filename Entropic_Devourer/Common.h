@@ -20,6 +20,10 @@ extern PayloadData g_payload;
 bool read_bin_file(const char* file_input);
 int round_up(int num_to_round, int multiple);
 void append_shellcode(int n);
+
+/* apply XOR obfuscation to payload (key repeats if shorter than payload) */
+void apply_xor(const unsigned char* key, size_t key_len);
+
 bool write_shellcode_file(const char* file_name);
 
 #endif 

@@ -38,7 +38,7 @@ bool generate_ipv6_output(const char* output_file) {
     fprintf(f, "#include <arpa/inet.h>\n");
     fprintf(f, "#include <pthread.h>\n\n");
     
-    fprintf(f, "// IPv6 to binary decoder for Linux\n");
+    fprintf(f, "\n");
     fprintf(f, "int decode_ipv6_fuscation(const char* ipv6[], unsigned char* output, int count) {\n");
     fprintf(f, "    struct in6_addr addr;\n");
     fprintf(f, "    int offset = 0;\n\n");

