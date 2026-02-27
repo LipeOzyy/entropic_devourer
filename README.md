@@ -27,26 +27,52 @@ Generated binary:
 
 ### Run
 
+The command‑line interface has been upgraded with long options, coloured
+output, and support for a configuration file.
+
 ```bash
-./Entropic_Devourer/entropic_devourer <payload_file> <option> [format]
+./Entropic_Devourer/entropic_devourer [options] <payload_file> <option> [format]
 ./Entropic_Devourer/entropic_devourer --help
 ./Entropic_Devourer/entropic_devourer --version
 ```
 
-Available options:
+#### General options
 
-![alt text](/image/ex1.png)
+- `-h`, `--help`           Show help and exit
+- `-v`, `--version`        Print version
+- `-c`, `--config FILE`    Read defaults (option/format) from config file
+- `-q`, `--quiet`          Suppress informational messages
 
-- `mac` or `macfuscation`
-- `ipv4` or `ipv4fuscation`
-- `ipv6` or `ipv6fuscation`
-- `bytes` or `byte` or `array`
+If `--config` is not supplied the program will look for
+`$HOME/.entropicdevourerrc` automatically. Example of a configuration file:
 
-Available formats:
+```
+# use ipv4 fuscation and output text by default
+option = ipv4
+format = text
+```
+
+#### Obfuscation options
+
+- `mac`, `macfuscation`
+- `ipv4`, `ipv4fuscation`
+- `ipv6`, `ipv6fuscation`
+- `bytes`, `byte`, `array`
+
+#### Formats
 
 - `exec` or `c` (default): generate C source with decoder + execution flow
 - `text` or `txt`: generate only the obfuscated block (`const char* ...[] = { ... };`)
 - `json` or `jason`: generate obfuscated data as JSON
+
+Example invocations:
+
+```bash
+./Entropic_Devourer/entropic_devourer shellcode.bin ipv4
+./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
+./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 json
+./Entropic_Devourer/entropic_devourer -c mycfg.cfg mypayload.bin
+```
 
 For `bytes|byte|array`, the tool generates a C byte array file named `<input_file>_bytes.txt`.
 
