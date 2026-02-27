@@ -338,7 +338,6 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    print_logo();
 
     for (int i = 0; option[i]; i++) {
         option[i] = tolower(option[i]);
