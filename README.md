@@ -30,8 +30,7 @@ Generated binary:
 
 ### Run
 
-The command‑line interface has been upgraded with long options, coloured
-output, and support for a configuration file.
+The command‑line interface:
 
 ```bash
 ./Entropic_Devourer/entropic_devourer [options] <payload_file> <option> [format]
