@@ -530,11 +530,6 @@ int main(int argc, char* argv[]) {
     if (xor_key_bytes) {
         free(xor_key_bytes);
     }
-    /* option and format may point into argv or be strdup'd from config
-       so only free if they were allocated separately (simplest is to check
-       if not one of the original pointers). we know that argv pointers
-       are part of argv array so they won't be malloc'd. */
-    /* we won't bother freeing them here since program is exiting anyway */
-
+   
     return success ? 0 : -1;
 }
