@@ -12,6 +12,7 @@
 #include "ipv6fuscation.h"
 #include "MacFuscation.h"
 #include "xorfuscation.h"
+#include "rc4fuscation.h"
 
 #define COLOR_RESET   "\x1b[0m"
 #define COLOR_RED     "\x1b[31m"
@@ -26,6 +27,7 @@
 #define MAC_FUSCATION  2000
 #define IPV6_FUSCATION 3000
 #define XOR_FUSCATION  4000
+#define RC4_FUSCATION  5000
 #define OUTPUT_EXEC    1
 #define OUTPUT_TEXT    2
 #define OUTPUT_JSON    3
@@ -44,7 +46,7 @@ static char *strdup_trim(const char *s) {
     return r;
 }
 
-static void load_config(const char *path, char **opt_out, char **fmt_out, char **xor_key_out) {
+static void load_config(const char *path, char **opt_out, char **fmt_out, char **xor_key_out, char **rc4_key_out) {
     FILE *f = fopen(path, "r");
     if (!f)
         return;
@@ -70,6 +72,9 @@ static void load_config(const char *path, char **opt_out, char **fmt_out, char *
             } else if (strcasecmp(key, "xor_key") == 0 && *xor_key_out == NULL) {
                 *xor_key_out = val;
                 val = NULL;
+            } else if (strcasecmp(key, "rc4_key") == 0 && *rc4_key_out == NULL) {
+                *rc4_key_out = val;
+                val = NULL;
             }
         }
         free(key);
@@ -89,17 +94,18 @@ void print_usage(const char* program_name) {
     printf("  -v, --version        Show version information\n");
     printf("  -c, --config <file>  Load defaults from configuration file\n");
     printf("  -d, --desobfuscate <type>  Print C decoder for given option and exit\n");
-    printf("  -k, --key <key>      Provide XOR key for normal or decoder modes\n");
+    printf("  -k, --key <key>      Provide key for XOR/RC4 normal or decoder modes\n");
     printf("  -q, --quiet          Suppress informational messages\n");
     printf("\n" COLOR_YELLOW "Obfuscation options:" COLOR_RESET "\n");
     printf("  mac, macfuscation    Use MAC‑style 6‑byte blocks\n");
     printf("  ipv4, ipv4fuscation  Use IPv4 4‑byte blocks\n");
     printf("  ipv6, ipv6fuscation  Use IPv6 16‑byte blocks\n");
     printf("  xor, xorfuscation <key>  XOR with provided key (0xNN or string)\n");
+    printf("  rc4, rc4fuscation <key>  RC4‑encrypt with provided key (hex or string)\n");
     printf("  bytes, byte, array   Dump raw bytes as C array (no decoder)\n");
     printf("\n" COLOR_YELLOW "Deobfuscation helpers:" COLOR_RESET "\n");
     printf("  use -d <type> to emit a decoder function in C for an obfuscation\n");
-    printf("    types: mac, ipv4, ipv6, xor (requires -k key)\n");
+    printf("    types: mac, ipv4, ipv6, xor, rc4 (requires -k key)\n");
     printf("\n" COLOR_YELLOW "Formats (optional):" COLOR_RESET "\n");
     printf("  exec (default) -> generates runnable C source\n");
     printf("  text           -> generates only const char* array block\n");
@@ -177,6 +183,32 @@ static void print_xor_decoder(const unsigned char *key, size_t key_len) {
     puts("}");
 }
 
+static void print_rc4_decoder(const unsigned char *key, size_t key_len) {
+    puts("#include <stddef.h>");
+    puts("void rc4_decode(unsigned char* buf, size_t len) {");
+    puts("    const unsigned char key[] = {");
+    for (size_t i = 0; i < key_len; i++) {
+        printf("    0x%02x,%s\n", key[i], i+1<key_len?"":"");
+    }
+    puts("    };\n    size_t klen = sizeof(key);");
+    puts("    unsigned char s[256];");
+    puts("    unsigned int i, j = 0;");
+    puts("    for(i=0;i<256;i++) s[i] = i;");
+    puts("    for(i=0;i<256;i++) {");
+    puts("        j = (j + s[i] + key[i % klen]) & 0xFF;");
+    puts("        unsigned char tmp = s[i]; s[i] = s[j]; s[j] = tmp;");
+    puts("    }");
+    puts("    i = 0; j = 0;");
+    puts("    for (size_t k = 0; k < len; k++) {");
+    puts("        i = (i + 1) & 0xFF;");
+    puts("        j = (j + s[i]) & 0xFF;");
+    puts("        unsigned char tmp = s[i]; s[i] = s[j]; s[j] = tmp;");
+    puts("        unsigned char rnd = s[(s[i] + s[j]) & 0xFF];");
+    puts("        buf[k] ^= rnd;");
+    puts("    }");
+    puts("}");
+}
+
 void print_logo() {
     printf("\n");
     printf("███████╗███╗   ██╗████████╗██████╗  ██████╗ ██████╗ ██╗ ██████╗\n");
@@ -204,7 +236,8 @@ int main(int argc, char* argv[]) {
     print_logo();
     char *option = NULL;
     char *format = NULL;
-    char *xor_key = NULL;
+    char *xor_key = NULL;   
+    char *rc4_key = NULL;   
     char *config_path = NULL;
 
 
@@ -224,11 +257,11 @@ int main(int argc, char* argv[]) {
     while ((ch = getopt_long(argc, argv, "hvc:qd:k:", longopts, NULL)) != -1) {
         switch (ch) {
             case 'h':
-                if (!quiet) print_logo();
+                if (!quiet) 
                 print_usage(argv[0]);
                 return 0;
             case 'v':
-                if (!quiet) print_logo();
+                if (!quiet)
                 print_version();
                 return 0;
             case 'c':
@@ -264,7 +297,12 @@ int main(int argc, char* argv[]) {
     }
 
     if (config_path) {
-        load_config(config_path, &option, &format, &xor_key);
+        load_config(config_path, &option, &format, &xor_key, &rc4_key);
+    }
+   
+    if (rc4_key && option &&
+        (strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0)) {
+        xor_key = rc4_key;
     }
 
     if (!des_mode) {
@@ -274,10 +312,10 @@ int main(int argc, char* argv[]) {
         if (optind < argc) {
             option = argv[optind++];
         }
-        if (option && (strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0)) {
+        if (option && (strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0 ||
+                         strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0)) {
             if (optind < argc) {
-                /* if the next positional argument looks like a format keyword,
-                   don't treat it as the XOR key here; leave it for later parsing */
+               
                 const char *next = argv[optind];
                 if (strcasecmp(next, "text") != 0 && strcasecmp(next, "txt") != 0 &&
                     strcasecmp(next, "json") != 0 && strcasecmp(next, "jason") != 0 &&
@@ -290,14 +328,15 @@ int main(int argc, char* argv[]) {
             format = argv[optind++];
         }
 
-        /* debug: print parsed positional args */
+       
 
         if (!payload_file || !option) {
             print_usage(argv[0]);
             return -1;
         }
-        if ((strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0) && !xor_key) {
-            if (!quiet) fprintf(stderr, COLOR_RED "[!] xor option requires a key argument\n" COLOR_RESET);
+        if ((strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0 ||
+             strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0) && !xor_key) {
+            if (!quiet) fprintf(stderr, COLOR_RED "[!] %s option requires a key argument\n" COLOR_RESET, option);
             print_usage(argv[0]);
             return -1;
         }
@@ -331,6 +370,21 @@ int main(int argc, char* argv[]) {
                 memcpy(tmpbuf, xor_key, tmp_len);
             }
             print_xor_decoder(tmpbuf,tmp_len);
+        } else if (strcmp(des_type, "rc4") == 0) {
+            if (!xor_key) {
+                if (!quiet) fprintf(stderr, COLOR_RED "[!] rc4 decoder requires key (-k)\n" COLOR_RESET);
+                return -1;
+            }
+            unsigned char tmpbuf[256];
+            size_t tmp_len=0;
+            if (strlen(xor_key)>2 && xor_key[0]=='0' && xor_key[1]=='x') {
+                unsigned int v; sscanf(xor_key, "%x", &v);
+                tmpbuf[0]=v&0xFF; tmp_len=1;
+            } else {
+                tmp_len = strlen(xor_key);
+                memcpy(tmpbuf, xor_key, tmp_len);
+            }
+            print_rc4_decoder(tmpbuf,tmp_len);
         } else {
             if (!quiet) fprintf(stderr, COLOR_RED "[!] unknown desobfuscation type '%s'\n" COLOR_RESET, des_type);
             return -1;
@@ -426,9 +480,10 @@ int main(int argc, char* argv[]) {
         }
         type = IPV6_FUSCATION;
     }
-    else if (strcmp(option, "xor") == 0 || strcmp(option, "xorfuscation") == 0) {
-        /* XOR handling doesn't need padding; just copy original payload for later processing */
-        if (!quiet) printf(COLOR_BLUE "[i] XOR obfuscation selected" COLOR_RESET "\n");
+    else if (strcmp(option, "xor") == 0 || strcmp(option, "xorfuscation") == 0 ||
+             strcmp(option, "rc4") == 0 || strcmp(option, "rc4fuscation") == 0) {
+       
+        if (!quiet) printf(COLOR_BLUE "[i] %s obfuscation selected" COLOR_RESET "\n", option);
         g_payload.p_new_shell = malloc(g_payload.bytes_number);
         if (!g_payload.p_new_shell) {
             perror(COLOR_RED "[!] malloc failed" COLOR_RESET);
@@ -437,7 +492,11 @@ int main(int argc, char* argv[]) {
         }
         memcpy(g_payload.p_new_shell, g_payload.p_shell, g_payload.bytes_number);
         g_payload.final_size = g_payload.bytes_number;
-        type = XOR_FUSCATION;
+        if (strcmp(option, "xor") == 0 || strcmp(option, "xorfuscation") == 0) {
+            type = XOR_FUSCATION;
+        } else {
+            type = RC4_FUSCATION;
+        }
     }
     else {
         if (!quiet) printf(COLOR_RED "[!] Unknown option: %s" COLOR_RESET "\n", option);
@@ -451,31 +510,34 @@ int main(int argc, char* argv[]) {
     bool success = false;
     const char* output_filename = NULL;
     
-    unsigned char *xor_key_bytes = NULL;
-    size_t xor_key_len = 0;
-    if (type == XOR_FUSCATION) {
+    unsigned char *key_bytes = NULL;
+    size_t key_len = 0;
+    if (type == XOR_FUSCATION || type == RC4_FUSCATION) {
         if (xor_key) {
             if (strlen(xor_key) > 2 && xor_key[0]=='0' && xor_key[1]=='x') {
                 unsigned int v;
                 if (sscanf(xor_key, "%x", &v) == 1) {
-                    xor_key_bytes = malloc(1);
-                    xor_key_bytes[0] = v & 0xFF;
-                    xor_key_len = 1;
+                    key_bytes = malloc(1);
+                    key_bytes[0] = v & 0xFF;
+                    key_len = 1;
                 }
             }
-            if (xor_key_len == 0) {
-                xor_key_len = strlen(xor_key);
-                xor_key_bytes = malloc(xor_key_len);
-                memcpy(xor_key_bytes, xor_key, xor_key_len);
+            if (key_len == 0) {
+                key_len = strlen(xor_key);
+                key_bytes = malloc(key_len);
+                memcpy(key_bytes, xor_key, key_len);
             }
         }
-        if (!xor_key_bytes || xor_key_len == 0) {
-            if (!quiet) fprintf(stderr, COLOR_RED "[!] failed to parse xor key\n" COLOR_RESET);
+        if (!key_bytes || key_len == 0) {
+            if (!quiet) fprintf(stderr, COLOR_RED "[!] failed to parse key\n" COLOR_RESET);
             free(g_payload.p_shell);
             return -1;
         }
-        apply_xor(xor_key_bytes, xor_key_len);
-        /* payload already processed; skip other generation switch? We'll generate based on g_payload.p_new_shell etc. */
+        if (type == XOR_FUSCATION) {
+            apply_xor(key_bytes, key_len);
+        } else {
+            apply_rc4(key_bytes, key_len);
+        }
     }
     
     switch (type) {
@@ -518,13 +580,25 @@ int main(int argc, char* argv[]) {
         case XOR_FUSCATION:
             if (output_mode == OUTPUT_TEXT) {
                 output_filename = "xor_shellcode.txt";
-                success = generate_xor_text_output(output_filename, xor_key_bytes, xor_key_len);
+                success = generate_xor_text_output(output_filename, key_bytes, key_len);
             } else if (output_mode == OUTPUT_JSON) {
                 output_filename = "xor_shellcode.json";
-                success = generate_xor_json_output(output_filename, xor_key_bytes, xor_key_len);
+                success = generate_xor_json_output(output_filename, key_bytes, key_len);
             } else {
                 output_filename = "xor_shellcode.c";
-                success = generate_xor_output(output_filename, xor_key_bytes, xor_key_len);
+                success = generate_xor_output(output_filename, key_bytes, key_len);
+            }
+            break;
+        case RC4_FUSCATION:
+            if (output_mode == OUTPUT_TEXT) {
+                output_filename = "rc4_shellcode.txt";
+                success = generate_rc4_text_output(output_filename, key_bytes, key_len);
+            } else if (output_mode == OUTPUT_JSON) {
+                output_filename = "rc4_shellcode.json";
+                success = generate_rc4_json_output(output_filename, key_bytes, key_len);
+            } else {
+                output_filename = "rc4_shellcode.c";
+                success = generate_rc4_output(output_filename, key_bytes, key_len);
             }
             break;
     }
@@ -548,8 +622,8 @@ int main(int argc, char* argv[]) {
     if (config_path) {
         free(config_path);
     }
-    if (xor_key_bytes) {
-        free(xor_key_bytes);
+    if (key_bytes) {
+        free(key_bytes);
     }
    
     return success ? 0 : -1;

@@ -96,9 +96,45 @@ void apply_xor(const unsigned char* key, size_t key_len) {
     printf("[+] Applied XOR with key length %zu\n", key_len);
 }
 
+void apply_rc4(const unsigned char* key, size_t key_len) {
+    if (key == NULL || key_len == 0) {
+        fprintf(stderr, "[!] apply_rc4 called with empty key\n");
+        return;
+    }
+    g_payload.final_size = g_payload.bytes_number;
+    unsigned char *out = malloc(g_payload.final_size);
+    if (!out) {
+        perror("[!] malloc failed in apply_rc4");
+        return;
+    }
+    unsigned char s[256];
+    for (int i = 0; i < 256; i++) {
+        s[i] = (unsigned char)i;
+    }
+    unsigned int j = 0;
+    for (int i = 0; i < 256; i++) {
+        j = (j + s[i] + key[i % key_len]) & 0xFF;
+        unsigned char tmp = s[i];
+        s[i] = s[j];
+        s[j] = tmp;
+    }
+    unsigned int i = 0;
+    j = 0;
+    for (size_t k = 0; k < g_payload.final_size; k++) {
+        i = (i + 1) & 0xFF;
+        j = (j + s[i]) & 0xFF;
+        unsigned char tmp = s[i];
+        s[i] = s[j];
+        s[j] = tmp;
+        unsigned char rnd = s[(s[i] + s[j]) & 0xFF];
+        out[k] = g_payload.p_shell[k] ^ rnd;
+    }
+    g_payload.p_new_shell = out;
+    printf("[+] Applied RC4 with key length %zu\n", key_len);
+}
+
 bool write_shellcode_file(const char* file_name) {
-    /* debug: report filename being opened */
-    //printf("[debug] write_shellcode_file opening '%s'\n", file_name);
+  
     FILE* file = fopen(file_name, "w");
     if (!file) {
         fprintf(stderr, "[!] fopen failed for output file '%s': ", file_name);

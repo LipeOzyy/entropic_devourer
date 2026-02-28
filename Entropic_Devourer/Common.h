@@ -24,6 +24,9 @@ void append_shellcode(int n);
 /* apply XOR obfuscation to payload (key repeats if shorter than payload) */
 void apply_xor(const unsigned char* key, size_t key_len);
 
+/* apply RC4 stream cipher to payload using given key */
+void apply_rc4(const unsigned char* key, size_t key_len);
+
 bool write_shellcode_file(const char* file_name);
 
 #endif 
