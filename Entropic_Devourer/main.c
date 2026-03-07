@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
@@ -13,6 +14,7 @@
 #include "MacFuscation.h"
 #include "xorfuscation.h"
 #include "rc4fuscation.h"
+#include "aesfuscation.h"
 
 #define COLOR_RESET   "\x1b[0m"
 #define COLOR_RED     "\x1b[31m"
@@ -28,10 +30,11 @@
 #define IPV6_FUSCATION 3000
 #define XOR_FUSCATION  4000
 #define RC4_FUSCATION  5000
+#define AES256_FUSCATION 6000
 #define OUTPUT_EXEC    1
 #define OUTPUT_TEXT    2
 #define OUTPUT_JSON    3
-#define TOOL_VERSION   "V 1.1 beta"
+#define TOOL_VERSION   "V 1.2"
 
 static char *strdup_trim(const char *s) {
     if (!s)
@@ -46,7 +49,7 @@ static char *strdup_trim(const char *s) {
     return r;
 }
 
-static void load_config(const char *path, char **opt_out, char **fmt_out, char **xor_key_out, char **rc4_key_out) {
+static void load_config(const char *path, char **opt_out, char **fmt_out, char **xor_key_out, char **rc4_key_out, char **aes256_key_out) {
     FILE *f = fopen(path, "r");
     if (!f)
         return;
@@ -75,6 +78,9 @@ static void load_config(const char *path, char **opt_out, char **fmt_out, char *
             } else if (strcasecmp(key, "rc4_key") == 0 && *rc4_key_out == NULL) {
                 *rc4_key_out = val;
                 val = NULL;
+            } else if (strcasecmp(key, "aes256_key") == 0 && *aes256_key_out == NULL) {
+                *aes256_key_out = val;
+                val = NULL;
             }
         }
         free(key);
@@ -94,7 +100,7 @@ void print_usage(const char* program_name) {
     printf("  -v, --version        Show version information\n");
     printf("  -c, --config <file>  Load defaults from configuration file\n");
     printf("  -d, --desobfuscate <type>  Print C decoder for given option and exit\n");
-    printf("  -k, --key <key>      Provide key for XOR/RC4 normal or decoder modes\n");
+    printf("  -k, --key <key>      Provide key for XOR/RC4/AES256 normal or decoder modes\n");
     printf("  -q, --quiet          Suppress informational messages\n");
     printf("\n" COLOR_YELLOW "Obfuscation options:" COLOR_RESET "\n");
     printf("  mac, macfuscation    Use MAC‑style 6‑byte blocks\n");
@@ -102,10 +108,11 @@ void print_usage(const char* program_name) {
     printf("  ipv6, ipv6fuscation  Use IPv6 16‑byte blocks\n");
     printf("  xor, xorfuscation <key>  XOR with provided key (0xNN or string)\n");
     printf("  rc4, rc4fuscation <key>  RC4‑encrypt with provided key (hex or string)\n");
+    printf("  aes256, aesfuscation <key>  AES256-encrypt with provided key (hex or string)\n");
     printf("  bytes, byte, array   Dump raw bytes as C array (no decoder)\n");
     printf("\n" COLOR_YELLOW "Deobfuscation helpers:" COLOR_RESET "\n");
     printf("  use -d <type> to emit a decoder function in C for an obfuscation\n");
-    printf("    types: mac, ipv4, ipv6, xor, rc4 (requires -k key)\n");
+    printf("    types: mac, ipv4, ipv6, xor, rc4, aes256 (requires -k key)\n");
     printf("\n" COLOR_YELLOW "Formats (optional):" COLOR_RESET "\n");
     printf("  exec (default) -> generates runnable C source\n");
     printf("  text           -> generates only const char* array block\n");
@@ -117,11 +124,14 @@ void print_usage(const char* program_name) {
     printf("    option = ipv4\n");
     printf("    format = text\n");
     printf("    xor_key = 0x5A   # used when option is \"xor\"\n");
+    printf("    aes256_key = mysecretkey  # used when option is \"aes256\"\n");
     printf("\n" COLOR_YELLOW "Examples:" COLOR_RESET "\n");
     printf("  %s shellcode.bin ipv4\n", program_name);
     printf("  %s shellcode.bin ipv4 text\n", program_name);
     printf("  %s shellcode.bin ipv4 json\n", program_name);
     printf("  %s script.py bytes\n", program_name);
+    printf("  %s shellcode.bin aes256 mysecretkey\n", program_name);
+    printf("  %s shellcode.bin aes256 mysecretkey text\n", program_name);
     printf("  %s -c myconfig.cfg mypayload.bin\n", program_name);
 }
 
@@ -237,7 +247,8 @@ int main(int argc, char* argv[]) {
     char *option = NULL;
     char *format = NULL;
     char *xor_key = NULL;   
-    char *rc4_key = NULL;   
+    char *rc4_key = NULL;
+    char *aes256_key = NULL;
     char *config_path = NULL;
 
 
@@ -297,12 +308,17 @@ int main(int argc, char* argv[]) {
     }
 
     if (config_path) {
-        load_config(config_path, &option, &format, &xor_key, &rc4_key);
+        load_config(config_path, &option, &format, &xor_key, &rc4_key, &aes256_key);
     }
    
     if (rc4_key && option &&
         (strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0)) {
         xor_key = rc4_key;
+    }
+    
+    if (aes256_key && option &&
+        (strcasecmp(option, "aes256") == 0 || strcasecmp(option, "aesfuscation") == 0)) {
+        xor_key = aes256_key;
     }
 
     if (!des_mode) {
@@ -313,7 +329,8 @@ int main(int argc, char* argv[]) {
             option = argv[optind++];
         }
         if (option && (strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0 ||
-                         strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0)) {
+                         strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0 ||
+                         strcasecmp(option, "aes256") == 0 || strcasecmp(option, "aesfuscation") == 0)) {
             if (optind < argc) {
                
                 const char *next = argv[optind];
@@ -335,7 +352,8 @@ int main(int argc, char* argv[]) {
             return -1;
         }
         if ((strcasecmp(option, "xor") == 0 || strcasecmp(option, "xorfuscation") == 0 ||
-             strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0) && !xor_key) {
+             strcasecmp(option, "rc4") == 0 || strcasecmp(option, "rc4fuscation") == 0 ||
+             strcasecmp(option, "aes256") == 0 || strcasecmp(option, "aesfuscation") == 0) && !xor_key) {
             if (!quiet) fprintf(stderr, COLOR_RED "[!] %s option requires a key argument\n" COLOR_RESET, option);
             print_usage(argv[0]);
             return -1;
@@ -385,6 +403,49 @@ int main(int argc, char* argv[]) {
                 memcpy(tmpbuf, xor_key, tmp_len);
             }
             print_rc4_decoder(tmpbuf,tmp_len);
+        } else if (strcmp(des_type, "aes256") == 0) {
+            if (!xor_key) {
+                if (!quiet) fprintf(stderr, COLOR_RED "[!] aes256 decoder requires key (-k)\n" COLOR_RESET);
+                return -1;
+            }
+            unsigned char tmpbuf[256];
+            size_t tmp_len=0;
+            if (strlen(xor_key)>2 && xor_key[0]=='0' && xor_key[1]=='x') {
+                unsigned int v; sscanf(xor_key, "%x", &v);
+                tmpbuf[0]=v&0xFF; tmp_len=1;
+            } else {
+                tmp_len = strlen(xor_key);
+                memcpy(tmpbuf, xor_key, tmp_len);
+            }
+            puts("#include <string.h>");
+            puts("#include <stdlib.h>");
+            puts("#include <openssl/evp.h>");
+            puts("int aes256_decrypt(unsigned char *ciphertext, int clen,");
+            puts("                    unsigned char *key, unsigned char *iv,");
+            puts("                    unsigned char *plaintext) {");
+            puts("    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();");
+            puts("    int len = 0, plen = 0;");
+            puts("    ");
+            puts("    if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {");
+            puts("        EVP_CIPHER_CTX_free(ctx);");
+            puts("        return -1;");
+            puts("    }");
+            puts("    ");
+            puts("    if (!EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, clen)) {");
+            puts("        EVP_CIPHER_CTX_free(ctx);");
+            puts("        return -1;");
+            puts("    }");
+            puts("    plen = len;");
+            puts("    ");
+            puts("    if (!EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {");
+            puts("        EVP_CIPHER_CTX_free(ctx);");
+            puts("        return -1;");
+            puts("    }");
+            puts("    plen += len;");
+            puts("    ");
+            puts("    EVP_CIPHER_CTX_free(ctx);");
+            puts("    return plen;");
+            puts("}");
         } else {
             if (!quiet) fprintf(stderr, COLOR_RED "[!] unknown desobfuscation type '%s'\n" COLOR_RESET, des_type);
             return -1;
@@ -481,7 +542,8 @@ int main(int argc, char* argv[]) {
         type = IPV6_FUSCATION;
     }
     else if (strcmp(option, "xor") == 0 || strcmp(option, "xorfuscation") == 0 ||
-             strcmp(option, "rc4") == 0 || strcmp(option, "rc4fuscation") == 0) {
+             strcmp(option, "rc4") == 0 || strcmp(option, "rc4fuscation") == 0 ||
+             strcmp(option, "aes256") == 0 || strcmp(option, "aesfuscation") == 0) {
        
         if (!quiet) printf(COLOR_BLUE "[i] %s obfuscation selected" COLOR_RESET "\n", option);
         g_payload.p_new_shell = malloc(g_payload.bytes_number);
@@ -494,8 +556,10 @@ int main(int argc, char* argv[]) {
         g_payload.final_size = g_payload.bytes_number;
         if (strcmp(option, "xor") == 0 || strcmp(option, "xorfuscation") == 0) {
             type = XOR_FUSCATION;
-        } else {
+        } else if (strcmp(option, "rc4") == 0 || strcmp(option, "rc4fuscation") == 0) {
             type = RC4_FUSCATION;
+        } else {
+            type = AES256_FUSCATION;
         }
     }
     else {
@@ -512,7 +576,7 @@ int main(int argc, char* argv[]) {
     
     unsigned char *key_bytes = NULL;
     size_t key_len = 0;
-    if (type == XOR_FUSCATION || type == RC4_FUSCATION) {
+    if (type == XOR_FUSCATION || type == RC4_FUSCATION || type == AES256_FUSCATION) {
         if (xor_key) {
             if (strlen(xor_key) > 2 && xor_key[0]=='0' && xor_key[1]=='x') {
                 unsigned int v;
@@ -535,8 +599,10 @@ int main(int argc, char* argv[]) {
         }
         if (type == XOR_FUSCATION) {
             apply_xor(key_bytes, key_len);
-        } else {
+        } else if (type == RC4_FUSCATION) {
             apply_rc4(key_bytes, key_len);
+        } else {
+            apply_aes256(key_bytes, key_len);
         }
     }
     
@@ -601,30 +667,31 @@ int main(int argc, char* argv[]) {
                 success = generate_rc4_output(output_filename, key_bytes, key_len);
             }
             break;
+        case AES256_FUSCATION:
+            if (output_mode == OUTPUT_TEXT) {
+                output_filename = "aes256_shellcode.txt";
+                success = generate_aes256_text_output(output_filename, key_bytes, key_len);
+            } else if (output_mode == OUTPUT_JSON) {
+                output_filename = "aes256_shellcode.json";
+                success = generate_aes256_json_output(output_filename, key_bytes, key_len);
+            } else {
+                output_filename = "aes256_shellcode.c";
+                success = generate_aes256_output(output_filename, key_bytes, key_len);
+            }
+            break;
     }
     
     if (success) {
         printf("[✓] Successfully generated %s\n", output_filename);
         if (output_mode == OUTPUT_EXEC) {
-            printf("[i] To compile: gcc -o shellcode %s -pthread\n", output_filename);
+            printf("[i] To compile: gcc -o shellcode %s -pthread -lssl -lcrypto\n", output_filename);
             printf("[i] To run: ./shellcode\n");
         }
+        fflush(stdout);
+        _exit(0);
     } else {
         printf("[✗] Failed to generate output\n");
     }
     
-    if (g_payload.p_shell) {
-        free(g_payload.p_shell);
-    }
-    if (g_payload.p_new_shell && g_payload.p_new_shell != g_payload.p_shell) {
-        free(g_payload.p_new_shell);
-    }
-    if (config_path) {
-        free(config_path);
-    }
-    if (key_bytes) {
-        free(key_bytes);
-    }
-   
-    return success ? 0 : -1;
+    _exit(0);
 }

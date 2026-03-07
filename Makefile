@@ -1,6 +1,6 @@
 CC := gcc
 CFLAGS := -Wall -Wextra -Wpedantic -std=c11
-LDFLAGS := -pthread
+LDFLAGS := -pthread -lssl -lcrypto
 
 SRC_DIR := Entropic_Devourer
 TARGET := $(SRC_DIR)/entropic_devourer
@@ -13,6 +13,7 @@ SOURCES := \
 	$(SRC_DIR)/MacFuscation.c \
 	$(SRC_DIR)/xorfuscation.c \
 	$(SRC_DIR)/rc4fuscation.c \
+	$(SRC_DIR)/aesfuscation.c \
 	$(SRC_DIR)/code_to_bytes.c
 
 .PHONY: all clean run test-bytes
@@ -34,7 +35,7 @@ test-bytes: $(TARGET)
 
 clean:
 	rm -f $(TARGET)
-	rm -f ipv4_shellcode.c ipv6_shellcode.c mac_shellcode.c xor_shellcode.c rc4_shellcode.c shellcode
-	rm -f ipv4_shellcode.txt ipv6_shellcode.txt mac_shellcode.txt xor_shellcode.txt rc4_shellcode.txt
-	rm -f ipv4_shellcode.json ipv6_shellcode.json mac_shellcode.json xor_shellcode.json rc4_shellcode.json
+	rm -f ipv4_shellcode.c ipv6_shellcode.c mac_shellcode.c xor_shellcode.c rc4_shellcode.c aes256_shellcode.c shellcode
+	rm -f ipv4_shellcode.txt ipv6_shellcode.txt mac_shellcode.txt xor_shellcode.txt rc4_shellcode.txt aes256_shellcode.txt
+	rm -f ipv4_shellcode.json ipv6_shellcode.json mac_shellcode.json xor_shellcode.json rc4_shellcode.json aes256_shellcode.json
 	rm -f *.txt_bytes.txt

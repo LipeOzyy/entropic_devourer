@@ -12,6 +12,7 @@ Designed as a technical laboratory for studying offensive and evasion techniques
 - Linux
 - GCC
 - `make`
+- OpenSSL development libraries (`libssl-dev`)
 - Binary payload/shellcode file (e.g., `shellcode.bin`)
 
 ### Build
@@ -49,11 +50,12 @@ If `--config` is not supplied the program will look for
 `$HOME/.entropicdevourerrc` automatically. Example of a configuration file:
 
 ```
-# use ipv4 fuscation and output text by default
-option = ipv4
+# use aes256 fuscation and output text by default
+option = aes256
 format = text
-xor_key = 0x5A   # only relevant when option is "xor" or "rc4"
-# rc4_key = secret  # can also be used when option = "rc4"
+aes256_key = mysecretkey   # only relevant when option is "aes256"
+xor_key = 0x5A             # only relevant when option is "xor"
+# rc4_key = secret         # can also be used when option = "rc4"
 ```
 
 #### Obfuscation options
@@ -63,18 +65,20 @@ xor_key = 0x5A   # only relevant when option is "xor" or "rc4"
 - `ipv6`, `ipv6fuscation`
 - `xor`, `xorfuscation` <key>    (hex 0xNN or literal string)
 - `rc4`, `rc4fuscation` <key>    (hex 0xNN or literal string)
+- `aes256`, `aesfuscation` <key> (hex 0xNN or literal string) - AES-256-CBC encryption
 - `bytes`, `byte`, `array`
 
 #### Deobfuscation helpers
 
 You can ask the tool to emit a decoder function in C instead of processing
 payloads. The `-d` / `--desobfuscate` option accepts the same types
-(`ipv4`, `ipv6`, `mac`, `xor`, `rc4`). For XOR/RC4 you must also pass a key with
+(`ipv4`, `ipv6`, `mac`, `xor`, `rc4`, `aes256`). For XOR/RC4/AES256 you must also pass a key with
 `-k`.
 
 ```bash
 ./Entropic_Devourer/entropic_devourer -d ipv4
 ./Entropic_Devourer/entropic_devourer -d xor -k 0x5A
+./Entropic_Devourer/entropic_devourer -d aes256 -k "mysecretkey"
 ```
 
 #### Formats
@@ -90,9 +94,12 @@ Example invocations:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 json
 ./Entropic_Devourer/entropic_devourer shellcode.bin xor secret
-./Entropic_Devourer/entropic_devourer shellcode.bin rc4 -k s3cr3t
+./Entropic_Devourer/entropic_devourer shellcode.bin rc4 s3cr3t
+./Entropic_Devourer/entropic_devourer shellcode.bin aes256 mysecret
+./Entropic_Devourer/entropic_devourer shellcode.bin aes256 mysecret text
 ./Entropic_Devourer/entropic_devourer -d ipv4
 ./Entropic_Devourer/entropic_devourer -d xor -k 0x5A
+./Entropic_Devourer/entropic_devourer -d aes256 -k "mysecretkey"
 ```
 
 For `bytes|byte|array`, the tool generates a C byte array file named `<input_file>_bytes.txt`.
@@ -106,6 +113,10 @@ Examples:
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac
 ./Entropic_Devourer/entropic_devourer shellcode.bin xor -k 0x5A
+./Entropic_Devourer/entropic_devourer shellcode.bin rc4 secretkey
+./Entropic_Devourer/entropic_devourer shellcode.bin aes256 secretkey
+./Entropic_Devourer/entropic_devourer shellcode.bin aes256 secretkey text
+./Entropic_Devourer/entropic_devourer shellcode.bin aes256 secretkey json
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv4 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin ipv6 text
 ./Entropic_Devourer/entropic_devourer shellcode.bin mac text
@@ -115,21 +126,12 @@ Examples:
 
 Generated output files (depending on the selected option):
 
-- `ipv4_shellcode.c`
-- `ipv6_shellcode.c`
-- `mac_shellcode.c`
-- `xor_shellcode.c`
-- `rc4_shellcode.c`
-- `mac_shellcode.c`
-- `xor_shellcode.c`
-- `ipv4_shellcode.txt`
-- `ipv6_shellcode.txt`
-- `mac_shellcode.txt`
-- `xor_shellcode.txt`
-- `ipv4_shellcode.json`
-- `ipv6_shellcode.json`
-- `mac_shellcode.json`
-- `xor_shellcode.json`
+- `ipv4_shellcode.c`, `ipv4_shellcode.txt`, `ipv4_shellcode.json`
+- `ipv6_shellcode.c`, `ipv6_shellcode.txt`, `ipv6_shellcode.json`
+- `mac_shellcode.c`, `mac_shellcode.txt`, `mac_shellcode.json`
+- `xor_shellcode.c`, `xor_shellcode.txt`, `xor_shellcode.json`
+- `rc4_shellcode.c`, `rc4_shellcode.txt`, `rc4_shellcode.json`
+- `aes256_shellcode.c`, `aes256_shellcode.txt`, `aes256_shellcode.json`
 - `<input_file>_bytes.txt`
 
 To clean build and generated artifacts:

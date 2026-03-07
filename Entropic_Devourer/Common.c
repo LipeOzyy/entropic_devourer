@@ -1,4 +1,6 @@
 #include "Common.h"
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 PayloadData g_payload = {0};
 
@@ -131,6 +133,84 @@ void apply_rc4(const unsigned char* key, size_t key_len) {
     }
     g_payload.p_new_shell = out;
     printf("[+] Applied RC4 with key length %zu\n", key_len);
+}
+
+void apply_aes256(const unsigned char* key, size_t key_len) {
+    if (key == NULL || key_len == 0) {
+        fprintf(stderr, "[!] apply_aes256 called with empty key\n");
+        return;
+    }
+    
+    g_payload.final_size = g_payload.bytes_number;
+    unsigned char *out = malloc(g_payload.final_size);
+    if (!out) {
+        perror("[!] malloc failed in apply_aes256");
+        return;
+    }
+    
+    unsigned char derived_key[32];
+    unsigned char salt[8] = {0};
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+    if (!mdctx) {
+        fprintf(stderr, "[!] Failed to create EVP_MD_CTX\n");
+        free(out);
+        return;
+    }
+    
+    int key_bits = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_md5(), salt,
+                                   key, key_len, 1, derived_key, NULL);
+    EVP_MD_CTX_free(mdctx);
+    
+    if (key_bits <= 0) {
+        fprintf(stderr, "[!] Failed to derive key\n");
+        free(out);
+        return;
+    }
+    
+    unsigned char iv[16];
+    if (!RAND_bytes(iv, sizeof(iv))) {
+        fprintf(stderr, "[!] Failed to generate random IV\n");
+        free(out);
+        return;
+    }
+    
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        fprintf(stderr, "[!] Failed to create cipher context\n");
+        free(out);
+        return;
+    }
+    
+    if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, derived_key, iv)) {
+        fprintf(stderr, "[!] EVP_EncryptInit_ex failed\n");
+        EVP_CIPHER_CTX_free(ctx);
+        free(out);
+        return;
+    }
+    
+    int len = 0;
+    if (!EVP_EncryptUpdate(ctx, out, &len, g_payload.p_shell, g_payload.final_size)) {
+        fprintf(stderr, "[!] EVP_EncryptUpdate failed\n");
+        EVP_CIPHER_CTX_free(ctx);
+        free(out);
+        return;
+    }
+    
+    int ciphertext_len = len;
+    if (!EVP_EncryptFinal_ex(ctx, out + len, &len)) {
+        fprintf(stderr, "[!] EVP_EncryptFinal_ex failed\n");
+        EVP_CIPHER_CTX_free(ctx);
+        free(out);
+        return;
+    }
+    
+    ciphertext_len += len;
+    g_payload.final_size = ciphertext_len;
+    g_payload.p_new_shell = out;
+    
+    EVP_CIPHER_CTX_free(ctx);
+    printf("[+] Applied AES256 with key length %zu (IV: %02x%02x...)\n", 
+           key_len, iv[0], iv[1]);
 }
 
 bool write_shellcode_file(const char* file_name) {
